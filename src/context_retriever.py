@@ -26,16 +26,68 @@ class GraphContextRetriever:
     
     def find_similar_issues(self, query_embedding: List[float], threshold: float = 0.7) -> List[Dict]:
         """
-        Find issues similar to the query using cosine similarity
-        Return issues with similarity > threshold
+        Find issues similar to the query using Neo4j's vector index (cosine).
+        Returns issues with similarity > threshold, sorted desc.
         """
-        with self.driver.session() as session:
-            # IMPLEMENT: Cypher query to find similar issues
-            # Hint: Neo4j has vector similarity functions or you can fetch and compute
-            query = """
-            // YOUR CYPHER QUERY HERE
-            // Should return issues with their similarity scores
-            """
+        INDEX_NAME = "idx_issue_embedding"  # Ensure this matches your Neo4j index name
+        K = 10                              # max number of neighbors to retrieve
+        
+        cypher = """
+        CALL db.index.vector.queryNodes($index, $k, $qemb)
+        YIELD node, score
+        WITH node, score
+        WHERE score > $threshold
+        RETURN node.id AS id,
+            node.title AS title,
+            node.description AS description,
+            coalesce(node.severity, 'unknown') AS severity,
+            score AS similarity
+        ORDER BY similarity DESC
+        """
+        # EXAMPLE: Enhanced ordering by severity (if needed)
+        # You can uncomment and modify the below if you want to prioritize by severity as well
+        #   cypher = """
+        #   CALL db.index.vector.queryNodes($index, $k, $qemb)
+        #   YIELD node, score
+        #   WITH node, score
+        #   WHERE score > $threshold
+        #    RETURN node.id AS id, node.title AS title, node.description AS description,
+        #       coalesce(node.severity,'unknown') AS severity,
+        #       CASE toLower(node.severity)
+        #               WHEN 'high'   THEN 3
+        #               WHEN 'medium' THEN 2
+        #               WHEN 'low'    THEN 1
+        #               ELSE 0
+        #       END AS sev_rank,
+        #       score AS similarity
+        #   ORDER BY similarity DESC, sev_rank DESC
+        #   """
+        
+        with self.driver.session() as session:  
+            res = session.run(
+                cypher,
+                {
+                    "index": INDEX_NAME,
+                    "qemb": query_embedding,
+                    "k": K,
+                    "threshold": float(threshold),
+                },
+            )
+            return [
+                {
+                    "id": r["id"],
+                    "title": r["title"],
+                    "description": r["description"],
+                    "severity": r["severity"],
+                    "similarity": float(r["similarity"]),
+                }
+            for r in res
+        ]
+    
+    def close(self) -> None:
+        try:
+            self.driver.close()
+        except Exception:
             pass
     
     def get_graph_context(self, issue_ids: List[str], max_hops: int = 2) -> Dict:

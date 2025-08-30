@@ -56,7 +56,7 @@ uv run python main.py
 # The embed_text() function is required for seeding
 
 # 5. Seed database 
-# uv run python scripts/seed_data.py
+# uv run python -m scripts.seed_data
 ```
 
 ## 🎯 Challenge Instructions
