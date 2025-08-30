@@ -1,13 +1,24 @@
 from typing import List, Dict
 from neo4j import GraphDatabase
+from functools import lru_cache
+from sentence_transformers import SentenceTransformer
 
+@lru_cache(maxsize=1)
+def _get_model() -> SentenceTransformer:
+    # lazy load to avoid re-instantiating the model on each call
+    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
 def embed_text(text: str) -> List[float]:
     """
-    Convert text to embedding
+    Convert text into a 384-dim embedding using all-MiniLM-L6-v2.
+    Returns a Python list[float] so it can be stored directly in Neo4j.
     """
-    # IMPLEMENT: Generate embedding for the text
-    pass
+    text = (text or "").strip()
+    if not text:
+        return [0.0] * 384
+    model = _get_model()
+    vec = model.encode(text, normalize_embeddings=True)
+    return vec.tolist()
 
 class GraphContextRetriever:
     def __init__(self, neo4j_uri: str, neo4j_auth: tuple):
