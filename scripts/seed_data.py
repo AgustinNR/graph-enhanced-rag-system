@@ -99,6 +99,8 @@ rels_product_issue = [
     {"p": "p2", "i": "i3"},
     {"p": "p3", "i": "i1"},
     {"p": "p4", "i": "i4"},
+    {"p": "p1", "i": "i2"},
+    {"p": "p2", "i": "i2"},
 ]
 
 rels_issue_solution = [
