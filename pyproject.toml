@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "debugpy>=1.8.16",
     "dotenv>=0.9.9",
     "neo4j>=5.28.2",
     "numpy>=2.3.2",

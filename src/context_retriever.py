@@ -13,9 +13,7 @@ def embed_text(text: str) -> List[float]:
     Convert text into a 384-dim embedding using all-MiniLM-L6-v2.
     Returns a Python list[float] so it can be stored directly in Neo4j.
     """
-    text = (text or "").strip()
-    if not text:
-        return [0.0] * 384
+    text = text.strip()
     model = _get_model()
     vec = model.encode(text, normalize_embeddings=True)
     return vec.tolist()
@@ -27,7 +25,8 @@ class GraphContextRetriever:
     def find_similar_issues(self, query_embedding: List[float], threshold: float = 0.7) -> List[Dict]:
         """
         Find issues similar to the query using Neo4j's vector index (cosine).
-        Returns issues with similarity > threshold, sorted desc.
+        Returns a list of issues with similarity > threshold, sorted desc. 
+        Each issue is a dict with: id, title, description, severity, similarity
         """
         INDEX_NAME = "idx_issue_embedding"  # Ensure this matches your Neo4j index name
         K = 10                              # max number of neighbors to retrieve
@@ -290,6 +289,7 @@ class GraphContextRetriever:
         # Header + user query
         sections.append(
             f"User Query: {query}\n"
+            "Main Intructions:\n"
             "You are a helpful technical assistant. Use ONLY the context below."
             "If the context is insufficient or ambiguous, apologize and say you don't know.\n"
         )

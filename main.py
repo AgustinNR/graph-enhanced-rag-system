@@ -16,6 +16,7 @@ async def main():
     system = SmartResponseSystem(retriever)
     
     test_queries = [
+        "Group pairing of multiple RGB bulbs fails intermittently", # Should find similar issue with high threshold
         "My SmartHub won't connect to WiFi",  # Should find similar issue
         "How do I reset my device?",  # Common query - fast path
         "The hub disconnects after exactly 2 hours and only when three lights are connected",  # Complex - slow path
@@ -26,7 +27,8 @@ async def main():
         response, path = await system.process_query(query)
         print(f"\nQuery: {query}")
         print(f"Path: {path.value}")
-        print(f"Response: {response[:200]}...")
+        #print(f"Response: {response[:200]}...")
+        print(f"Response: {response}")
         print("-" * 50)
 
 if __name__ == "__main__":
