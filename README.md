@@ -6,6 +6,9 @@ A context retrieval system that combines Neo4j knowledge graphs with embeddings 
 
 ```
 aichallenge_clean/
+├── 📁 docs/                           
+│   └── 📄 fast_slow_flow_diagram.mmd  # Editable mermaid flow diagram
+│   └── 📄 fast_slow_flow_diagram.png  # Flow diagram image
 ├── 📁 scripts/                # Utility scripts
 │   └── 📄 seed_data.py        # Database seeding
 ├── 📁 src/                    # Main implementation package
@@ -49,14 +52,11 @@ docker-compose up -d
 # Check status: 
 docker-compose ps
 
-# 3. Test it
+# 3. Seed database 
+uv run python -m scripts.seed_data
+
+# 4. Test it
 uv run python main.py
-
-# 4. Implement embeddings in src/context_retriever.py first
-# The embed_text() function is required for seeding
-
-# 5. Seed database 
-# uv run python -m scripts.seed_data
 ```
 
 ## 🎯 Challenge Instructions

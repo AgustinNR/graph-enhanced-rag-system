@@ -1,0 +1,35 @@
+flowchart TD
+  %% ========= Nodes =========
+  A([User Query])
+  N[Normalize & lowercase<br/>get cache_key]
+  C{Cache hit?}
+  E[embed_text(query)]
+  V[Neo4j vector search<br/>idx_issue_embedding<br/>TOPK=10, cosine]
+  T{Top-1 similarity >= threshold?}
+
+  %% Fast path
+  BS[Best solution for issue]
+  FF[Format fast answer]
+  CC[Cache answer]
+  RF([Response FAST])
+
+  %% Slow path
+  SI[find_similar_issues]
+  GC[get_graph_context]
+  FP[format_context_for_llm<br/>compact sections + truncation]
+  LLM[_call_llm]
+  RS([Response SLOW])
+
+  %% ========= Flow =========
+  A --> N --> C
+  C -- Yes --> RF
+  C -- No --> E --> V --> T
+
+  %% Fast branch
+  T -- Yes --> BS --> FF --> CC --> RF
+
+  %% Slow branch
+  T -- No --> SI --> GC --> FP --> LLM --> RS
+
+  %% ========= Notes =========
+  class E,V,SI,GC,FP,LLM,BS,FF,CC note;

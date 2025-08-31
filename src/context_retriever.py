@@ -43,24 +43,6 @@ class GraphContextRetriever:
             score AS similarity
         ORDER BY similarity DESC
         """
-        # EXAMPLE: Enhanced ordering by severity (if needed)
-        # You can uncomment and modify the below if you want to prioritize by severity as well
-        #   cypher = """
-        #   CALL db.index.vector.queryNodes($index, $k, $qemb)
-        #   YIELD node, score
-        #   WITH node, score
-        #   WHERE score > $threshold
-        #    RETURN node.id AS id, node.title AS title, node.description AS description,
-        #       coalesce(node.severity,'unknown') AS severity,
-        #       CASE toLower(node.severity)
-        #               WHEN 'high'   THEN 3
-        #               WHEN 'medium' THEN 2
-        #               WHEN 'low'    THEN 1
-        #               ELSE 0
-        #       END AS sev_rank,
-        #       score AS similarity
-        #   ORDER BY similarity DESC, sev_rank DESC
-        #   """
         
         with self.driver.session() as session:  
             res = session.run(

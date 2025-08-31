@@ -73,8 +73,8 @@ Solution {
     success_rate: float
 }
 
-(:Solution) --[:FIXES]-> (:Issue)
-(:Issue) --[:RELATES_TO]-> (:Product)
+(p:Product)-[:HAS_ISSUE]->(i:Issue)
+(i:Issue)-[:SOLVED_BY]->(s:Solution)
 ```
 
 #### 1.2 Your Task: Implement Context Retrieval
