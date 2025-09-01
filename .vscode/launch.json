@@ -10,26 +10,6 @@
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "justMyCode": true
-    },
-    {
-      "name": "Python: Run module tests.run_minimal (venv)",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "tests.run_minimal",
-      "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
-      "justMyCode": true
-    },
-    {
-      "name": "Python: Attach to debugpy (uv)",
-      "type": "debugpy",
-      "request": "attach",
-      "connect": {
-        "host": "localhost",
-        "port": 5678
-      },
-      "justMyCode": true
     }
   ]
 }
