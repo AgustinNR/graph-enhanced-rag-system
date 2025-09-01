@@ -225,8 +225,8 @@ Sentence-Transformers can be run locally without external API dependencies. This
 **Data Flow:**
 
 
-<p align="center">
-  <img src="docs/fast_slow_flow_diagram.svg" alt="Fast/Slow routing diagram" width="720" style="max-width:100%;height:auto;">
+<p align="left">
+  <img src="docs/fast_slow_flow_diagram.svg" alt="Fast/Slow routing diagram" width="480" style="max-width:100%;height:auto;">
 </p>
 Slow Path:
 ```
