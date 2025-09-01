@@ -15,7 +15,7 @@ def embed_text(text: str) -> List[float]:
     """
     text = text.strip()
     model = _get_model()
-    vec = model.encode(text, normalize_embeddings=True)
+    vec = model.encode(text, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=False)
     return vec.tolist()
 
 class GraphContextRetriever:

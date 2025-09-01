@@ -3,12 +3,15 @@ from typing import Tuple, Dict, List, Optional
 from enum import Enum
 from openai import OpenAI
 import os
+import time
+import logging
 from dotenv import load_dotenv
 from src.context_retriever import embed_text, GraphContextRetriever
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
+FAST_THRESHOLD = 0.75  # similarity threshold for fast path - tuned for demo, original was 0.85
+SLOW_THRESHOLD = 0.65   # similarity threshold for slow path
 class ResponsePath(Enum):
     FAST = "fast"  # Cached or high-similarity match
     SLOW = "slow"  # Needs graph traversal + LLM
@@ -21,7 +24,7 @@ class SmartResponseSystem:
             "what's the warranty period?": "The standard warranty period is 12 months from the date of purchase.",
         }  # cache_key -> answer - Simple cache for demo
         #self.fast_threshold = 0.85  # High similarity = fast path
-        self.fast_threshold = 0.75  # High similarity = fast path
+        self.fast_threshold = FAST_THRESHOLD  # High similarity = fast path
         
     async def process_query(self, query: str) -> Tuple[str, ResponsePath]:
         """
@@ -31,10 +34,15 @@ class SmartResponseSystem:
           - Else -> SLOW (complete graph traversal + LLM)    
         """
         
+        t0 = time.time()
+        
         # 1) Cache check first
         cache_key = self._get_cache_key(query)
         if cache_key in self.similarity_cache:
-            return self.similarity_cache[cache_key], ResponsePath.FAST
+            answer = self.similarity_cache[cache_key]
+            elapsed_ms = (time.time() - t0) * 1000
+            logging.info("route=FAST source=cache ms=%.2f query=%r", elapsed_ms, query)
+            return answer, ResponsePath.FAST
         
         # 2) Check similarity to known issues
         query_embedding = embed_text(query)
@@ -42,10 +50,19 @@ class SmartResponseSystem:
         # check if the list is not empty
         if similar_issues:
             top_issue_id = similar_issues[0]["id"]
-            return await self._fast_path(cache_key, top_issue_id)
+            answer, path = await self._fast_path(cache_key, top_issue_id)
+            elapsed_ms = (time.time() - t0) * 1000
+            logging.info(
+                "route=FAST source=vector ms=%.2f query=%r top_issue=%s hits=%d",
+                elapsed_ms, query, top_issue_id, len(similar_issues)
+            )
+            return answer, path
 
         # 3) Else, slow path
-        return await self._slow_path(query_embedding, query)
+        answer, path = await self._slow_path(query_embedding, query)
+        elapsed_ms = (time.time() - t0) * 1000
+        logging.info("route=SLOW ms=%.2f query=%r", elapsed_ms, query)
+        return answer, path
     
     async def _fast_path(self, cache_key: str, issue_id: str) -> Tuple[str, ResponsePath]:
         """
@@ -56,6 +73,7 @@ class SmartResponseSystem:
         best = self._best_solution_for_issue(issue_id)
         answer = self._format_fast_answer(best)
         self.similarity_cache[cache_key] = answer
+        logging.info("fast_path resolved issue_id=%s products=%s", issue_id, best.get("products"))
         return answer, ResponsePath.FAST        
     
     async def _slow_path(self, query_embedding: List[float], query: str) -> Tuple[str, ResponsePath]:
@@ -64,8 +82,19 @@ class SmartResponseSystem:
         Can take 2-5 seconds
         """
     
-        similar_issues = self.retriever.find_similar_issues(query_embedding, threshold=0.5)
-        context = self.retriever.get_graph_context(similar_issues, max_hops=2)
+        similar_issues = self.retriever.find_similar_issues(query_embedding, threshold=SLOW_THRESHOLD)
+        issue_ids = [h["id"] for h in similar_issues]
+        context = self.retriever.get_graph_context(issue_ids , max_hops=2)
+        
+        # clean logging of context summary
+        logging.info(
+            "graph.context primary=%d solutions=%d products=%d related=%d",
+            len(context.get('primary_issues', [])),
+            len(context.get('solutions', [])),
+            len(context.get('affected_products', [])),
+            len(context.get('related_issues', [])),
+        )
+        
         prompt = self.retriever.format_context_for_llm(context, query)
         answer = self._call_llm(prompt)
         return answer, ResponsePath.SLOW
@@ -79,12 +108,44 @@ class SmartResponseSystem:
         # For testing, you can mock this:
         # return f"Mock LLM response for: {prompt[:100]}..."
         client = OpenAI()
+        t0 = time.time()
 
         response = client.responses.create(
             model=model,
             input=prompt
         )
         
+        elapsed_ms = (time.time() - t0) * 1000
+        
+        # token usage logging (if available)
+        usage = getattr(response, "usage", None)
+        in_tks = out_tks = total_tks = cached_tks = None
+        try:
+            u = usage
+            def pick(keys):
+                if u is None:
+                    return None
+                for k in keys:
+                    if hasattr(u, k):
+                        return getattr(u, k)
+                    if isinstance(u, dict) and k in u:
+                        return u[k]
+                return None
+            in_tks    = pick(["input_tokens", "prompt_tokens"])
+            out_tks   = pick(["output_tokens", "completion_tokens"])
+            total_tks = pick(["total_tokens"])
+            itd = pick(["input_tokens_details", "prompt_tokens_details"])
+            if itd is not None:
+                if hasattr(itd, "cached_tokens"):
+                    cached_tks = getattr(itd, "cached_tokens")
+                elif isinstance(itd, dict):
+                    cached_tks = itd.get("cached_tokens")
+        except Exception:
+            pass
+
+        logging.info(f"LLM_TIME_MS={elapsed_ms:.2f}")
+        logging.info(f"LLM_TOKENS input={in_tks} output={out_tks} total={total_tks} cached={cached_tks}")
+
         return response.output_text
     
     def _get_cache_key(self, query: str) -> str:
