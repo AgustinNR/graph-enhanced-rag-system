@@ -195,7 +195,6 @@ Sentence-Transformers can be run locally without external API dependencies. This
     - Sections: Primary Issues, Candidate Solutions, Affected Products, Related Issues, plus brief Answering Guidelines.
     - Ranking/selection: Retrieved information filtered and sorted by Neo4j graph.
     - Truncation: Per-field normalization + char-based cut (_truncate(..., n=220)) for issue descriptions.
-    - Step cap: ≤ 6 steps per solution (steps[:6]).
 
 **Fallback Strategy:**
 - Fast path already de-risks many queries (cache + deterministic answer). 

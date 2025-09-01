@@ -125,6 +125,7 @@ class GraphContextRetriever:
                 RETURN s.id   AS id,
                         s.title AS title,
                         s.success_rate AS success_rate,
+                        s.steps AS steps,
                         round(avg(coalesce(r.effectiveness, 0.7)), 3) AS avg_effectiveness,
                         count(DISTINCT i) AS supporting_issues
                 ORDER BY avg_effectiveness DESC, success_rate DESC, title ASC
@@ -135,6 +136,7 @@ class GraphContextRetriever:
                 "id": r["id"],
                 "title": r["title"],
                 "success_rate": float(r["success_rate"]) if r["success_rate"] is not None else None,
+                "steps": r["steps"] or [],
                 "avg_effectiveness": float(r["avg_effectiveness"]),
                 "supporting_issues": int(r["supporting_issues"]),
             } for r in rows]
@@ -233,9 +235,11 @@ class GraphContextRetriever:
             if s.get("supporting_issues"):
                 parts.append(f"supports: {int(s['supporting_issues'])} issues")
             line = " — ".join(parts)
-            steps = s.get("steps")
+            steps = s.get("steps") or []
             if steps:
-                line += "\n  steps: " + "; ".join(steps[:6])
+                nums = "\n".join(f"    {i+1}. {st}" for i, st in enumerate(steps))
+                line += "\n  steps:\n" + nums
+
             return line
 
         def _fmt_product(p: Dict) -> str:
@@ -300,8 +304,7 @@ class GraphContextRetriever:
         sections.append(
             "Answering Guidelines:\n"
             "- Prefer solutions with higher avg_effectiveness and success_rate; consider issue severity.\n"
-            "- Reference solutions by their IDs (e.g., [s1]) when recommending steps.\n"
-            "- Provide a concise, step-by-step plan.\n"
+            "- Provide a concise, step-by-step plan based on the retrieved steps.\n"
             "- If multiple solutions apply, compare briefly and pick one to try first."
         )
 
