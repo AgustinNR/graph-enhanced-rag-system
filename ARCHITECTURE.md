@@ -229,12 +229,13 @@ Sentence-Transformers can be run locally without external API dependencies. This
   <img src="docs/fast_slow_flow_diagram.svg" alt="Fast/Slow routing diagram" width="480" style="max-width:100%;height:auto;">
 </p>
 Slow Path:
+
 ```
 Query
-  → normalize + cache lookup (hit? → return) → Response (FAST)
-  → embed_text(query)
-  → Neo4j vector search (idx_issue_embedding, TOPK=10)
-  → if top-1 similarity > threshold:
+→ normalize + cache lookup (hit? → return) → Response (FAST)
+→ embed_text(query)
+→ Neo4j vector search (idx_issue_embedding, TOPK=10)
+→ if top-1 similarity > threshold:
         _best_solution_for_issue(issue_id)
         _format_fast_answer(best)
         cache[query_norm] = answer
