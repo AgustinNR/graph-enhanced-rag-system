@@ -204,7 +204,7 @@ Sentence-Transformers can be run locally without external API dependencies. This
 
 **Consequences:**
 - **Response quality vs. latency trade-off:** fast path stays LLM-free and sub-200 ms; slow path adds LLM latency but benefits from structured, small prompts (kept concise via truncation and top-k selection).
-- Cost per query: input 0.7K × $0.10/M ≈ $0.00007 + output 0.3K × $0.40/M ≈ $0.00012 → ≈ $0.00019 per call.
+- **Cost per query:** input 0.7K × $0.10/M ≈ $0.00007 + output 0.3K × $0.40/M ≈ $0.00012 → ≈ $0.00019 per call (conservative approach).
 - **Vendor lock-in:** mitigated by a single _call_llm integration point.
 - **Compliance and data privacy implications:** default local-first flow; when using a managed LLM, we send minimal, low-sensitive graph context. Azure/GCP offer enterprise controls if needed. In case of higher privacy standards needed running Llama 3 8B on-premise with Ollama could be a good fit.
 
